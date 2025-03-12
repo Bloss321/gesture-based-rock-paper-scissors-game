@@ -3,6 +3,15 @@ import cv2
 import csv
 import os
 import numpy as np
+import pandas as pd
+import pickle
+
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression, RidgeClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.metrics import accuracy_score
 
 def initialise_csv(hand: str): # run twice for each hand
     num_landmarks = 21  # 21 landmark coordinates per hand
@@ -13,6 +22,7 @@ def initialise_csv(hand: str): # run twice for each hand
     with open(hand + '_landmark_points.csv', mode='w', newline='') as file:
         csv_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         csv_writer.writerow(landmarks)
+
 
 # classify the landmarks for each hand gesture and write to respective csv files (per hand)
 def classify_landmarks(class_name, hand):
@@ -69,7 +79,59 @@ def classify_landmarks(class_name, hand):
     cap.release()
     cv2.destroyAllWindows()
 
-# two recognisers for left and right hands????
+
+def train_model(hand: str):
+    # read data
+    data_frame = pd.read_csv(hand + '_landmark_points.csv')
+
+    X = data_frame.drop(hand + 'Class', axis = 1) # features
+    y = data_frame[hand + 'Class'] # target value
+    # create training and testing partitions
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1234)
+
+    pipelines = {
+        'lr': make_pipeline(StandardScaler(), LogisticRegression()),
+        'rc': make_pipeline(StandardScaler(), RidgeClassifier()),
+        'rf': make_pipeline(StandardScaler(), RandomForestClassifier()),
+        'gb': make_pipeline(StandardScaler(), GradientBoostingClassifier()),
+    }
+
+    # train models for all the above pipelines
+    fit_models = {}
+    for algorithm, pipeline in pipelines.items():
+        model = pipeline.fit(X_train, y_train)
+        fit_models[algorithm] = model
+
+    train_test = {
+        "X_train": X_train,
+        "X_test": X_test,
+        "y_train": y_train,
+        "y_test": y_test
+    }
+
+    return fit_models, train_test
+
+
+def train_and_evaluate_model(hand: str):
+    fit_models, train_test = train_model(hand)
+
+    for algorithm, model in fit_models.items():
+        yhat = model.predict(train_test.get("X_test"))
+        print(algorithm, accuracy_score(train_test.get("y_test"), yhat))
+
+        '''
+        Results: 
+        lr 0.9944576405384006
+        rc 0.9912905779889153
+        rf 0.9920823436262867
+        gb 0.9920823436262867
+        '''
+
+    with open(hand + '_hand_gestures.pkl', 'wb') as file:
+        pickle.dump(fit_models['rf'], file)
+
+    return None
+
 def gesture_recogniser(hand:str):
     mp_drawing = mp.solutions.drawing_utils
     mp_hands = mp.solutions.hands
@@ -169,12 +231,19 @@ if __name__ == "__main__":
     # option to choose either the left or right hand
     # initialise the csv file
     hands = ["left", "right"]
+    # class_names = ["rock", "paper", "scissors"]
+
+    # Step 1: initialise the csv files to store data per hand
     '''for hand in hands: 
         initialise_csv(hand)'''
 
-    # class_names = ["rock", "paper", "scissors"]
+    # Step 2
     # classify_landmarks("scissors", "right")
     # classify_landmarks(class_names[0], hands[0])
+
+    # Step 3
+    train_and_evaluate_model("right")
+
 
 
     # gesture_recogniser(hand)
