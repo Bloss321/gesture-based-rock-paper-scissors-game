@@ -133,7 +133,7 @@ def train_and_evaluate_model(hand: str):
     return None
 
 
-def gesture_recogniser(hand:str):
+def test_gesture_recogniser(hand:str):
     with open(hand + '_hand_gestures.pkl', 'rb') as file:
         model = pickle.load(file)
 
@@ -213,4 +213,4 @@ if __name__ == "__main__":
     # train_and_evaluate_model("right")
 
     # Step 4: test trained model live
-    gesture_recogniser("right")
+    test_gesture_recogniser("right")

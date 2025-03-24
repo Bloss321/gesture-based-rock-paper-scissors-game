@@ -11,8 +11,12 @@ def main():
     screen_height = 600
     screen = pygame.display.set_mode((screen_width, screen_height))
 
+    background_colour = (51, 102, 153)
+
+    display = pygame.display.set_mode((screen_width, screen_height))
+    pygame.display.set_caption("AI Rock Paper Scissors Game")
+
     clock = pygame.time.Clock()
-    pygame.display.set_caption('AI Rock Paper Scissors Game')
 
     def display_score():
         pass
